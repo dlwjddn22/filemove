@@ -15,17 +15,17 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QGridLayout, QHeaderView,
-    QLayout, QLineEdit, QMainWindow, QMenuBar,
-    QPushButton, QSizePolicy, QSpacerItem, QStatusBar,
-    QTableWidget, QTableWidgetItem, QTreeView, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QGridLayout, QHBoxLayout,
+    QHeaderView, QLabel, QLayout, QLineEdit,
+    QMainWindow, QMenuBar, QProgressBar, QPushButton,
+    QSizePolicy, QSpacerItem, QStatusBar, QTableWidget,
+    QTableWidgetItem, QTreeView, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1090, 602)
+        MainWindow.resize(1074, 572)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout_2 = QGridLayout(self.centralwidget)
@@ -75,10 +75,26 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.destTree)
 
+        self.moveStatusLabel = QLabel(self.centralwidget)
+        self.moveStatusLabel.setObjectName(u"moveStatusLabel")
+
+        self.verticalLayout.addWidget(self.moveStatusLabel)
+
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.moveFilePrgs = QProgressBar(self.centralwidget)
+        self.moveFilePrgs.setObjectName(u"moveFilePrgs")
+        self.moveFilePrgs.setValue(0)
+
+        self.horizontalLayout.addWidget(self.moveFilePrgs)
+
         self.moveFileBtn = QPushButton(self.centralwidget)
         self.moveFileBtn.setObjectName(u"moveFileBtn")
 
-        self.verticalLayout.addWidget(self.moveFileBtn)
+        self.horizontalLayout.addWidget(self.moveFileBtn)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout)
 
 
         self.gridLayout.addLayout(self.verticalLayout, 0, 2, 3, 1)
@@ -89,7 +105,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1090, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1074, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -108,6 +124,7 @@ class Ui_MainWindow(object):
         ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"\uacbd\ub85c", None));
         ___qtablewidgetitem2 = self.startTable.horizontalHeaderItem(3)
         ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"\ud0dc\uadf8", None));
+        self.moveStatusLabel.setText(QCoreApplication.translate("MainWindow", u"\ud30c\uc77c\uc774\ub3d9\uc744 \ud074\ub9ad\ud574\uc8fc\uc138\uc694.", None))
         self.moveFileBtn.setText(QCoreApplication.translate("MainWindow", u"\ud30c\uc77c\uc774\ub3d9", None))
     # retranslateUi
 

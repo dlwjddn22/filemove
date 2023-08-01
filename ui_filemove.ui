@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1090</width>
-    <height>602</height>
+    <width>1074</width>
+    <height>572</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -75,11 +75,29 @@
          <widget class="QTreeView" name="destTree"/>
         </item>
         <item>
-         <widget class="QPushButton" name="moveFileBtn">
+         <widget class="QLabel" name="moveStatusLabel">
           <property name="text">
-           <string>파일이동</string>
+           <string>파일이동을 클릭해주세요.</string>
           </property>
          </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QProgressBar" name="moveFilePrgs">
+            <property name="value">
+             <number>0</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="moveFileBtn">
+            <property name="text">
+             <string>파일이동</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>
@@ -92,7 +110,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1090</width>
+     <width>1074</width>
      <height>22</height>
     </rect>
    </property>
