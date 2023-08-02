@@ -1,3 +1,4 @@
 config.ini
 todo.txt
 __pycache__
+/log/*

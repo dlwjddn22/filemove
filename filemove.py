@@ -1,10 +1,10 @@
 import sys, os
 import configparser
 import sqlite3
-import shutil
+import logging.handlers
 from PySide6.QtGui import QPixmap, QDesktopServices
 from PySide6.QtCore import Qt, QUrl, QThread, Signal
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QTableWidgetItem, QHBoxLayout, QWidget, QCheckBox, QFileSystemModel, QAbstractItemView, QMessageBox, QProgressBar
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QTableWidgetItem, QFileSystemModel, QAbstractItemView, QMessageBox
 from ui_filemove_ui import Ui_MainWindow
 
 
@@ -13,7 +13,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        
+
         #상단콤보박스 셋팅
         self.setDbpathCmb()
 
@@ -109,7 +109,6 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl("file:///"+str(self.model_file_system.filePath(index)))); #파일실행
 
     def moveFileData(self):
-        
         startPath = self.ui.startCmb.currentText()
         destTreeIdx = self.ui.destTree.currentIndex()
         destPath = self.model_file_system.filePath(destTreeIdx)
@@ -154,6 +153,7 @@ class MainWindow(QMainWindow):
                             self.ui.startTable.item(row, 3).setText(newText)
                         self.ui.startTable.item(row, 0).setCheckState(Qt.CheckState.Unchecked)
             if(value == "다른폴더완료"):
+                del_row.reverse()
                 for row in del_row:
                     self.ui.startTable.removeRow(row)
         self.ui.moveStatusLabel.setText(value)
@@ -168,6 +168,14 @@ class FileMoveThread(QThread):
         self.filePaths = filePaths
         self.file_tot_size = 0
         self.temp_file_size = 0
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+        timedfilehandler = logging.handlers.TimedRotatingFileHandler(filename='./log/logfile.log', when='midnight', interval=1, encoding='utf-8')
+        timedfilehandler.setFormatter(formatter)
+        timedfilehandler.suffix = "%Y%m%d"
+        self.logger.addHandler(timedfilehandler)
 
     def run(self):
         try:
@@ -191,6 +199,7 @@ class FileMoveThread(QThread):
                 self.filemove_status_signal.emit("동일폴더완료")
         except Exception as e:
             self.filemove_status_signal.emit("실패")
+            self.logger.error(str(e))
             #print(e)
         finally:
             self.startDbCon.close()
@@ -241,6 +250,7 @@ class FileMoveThread(QThread):
                 self.destDbCon.rollback()
             #os.remove(dFileFullPath) 삭제는 위험
             print(self,'에러','SQLite error : %s' % (' '.join(er.args)))
+            self.logger.error('SQLite error : %s' % (' '.join(er.args)))
         
 
 if __name__ == "__main__":
