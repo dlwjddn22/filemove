@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QTableWidgetItem, QFileSystemModel, QAbstractItemView, QMessageBox
 from ui_filemove_ui import Ui_MainWindow
 from FileMoveThread import FileMoveThread
+from StartTableThread import StartTableThread
 
 
 class MainWindow(QMainWindow):
@@ -59,27 +60,38 @@ class MainWindow(QMainWindow):
     # 출발지 테이블 데이터 셋팅(sqlite)
     def setStartTableWidget(self):#스레드로 돌면 좋을텐데..
         self.startDbpath = str(self.ui.startCmb.currentText()) + "deepdark.db"
-        self.startCon = sqlite3.connect(self.startDbpath)
-        result = self.startCon.cursor().execute("SELECT uid, thumb, hashTag, filepath FROM Files;")
         self.ui.startTable.setRowCount(0) #테이블 초기화
-        for row_num, row_data in enumerate(result):
-            self.ui.startTable.insertRow(row_num)
-            for col_num, col_data in enumerate(row_data):
-                item = str(col_data)
-                if(col_num == 0): #체크박스
-                    item = QTableWidgetItem(item)
-                    item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled )
-                    item.setCheckState(Qt.CheckState.Unchecked)
-                    self.ui.startTable.setItem(row_num, col_num, item)
-                elif(col_num == 1): #썸네일
-                    item = self.getImageLabel(col_data)
-                    self.ui.startTable.setCellWidget(row_num, col_num, item)
-                else:
-                    if(item == "None"):
-                        item = ""
-                    self.ui.startTable.setItem(row_num, col_num, QTableWidgetItem(item))
         self.ui.startTable.verticalHeader().setDefaultSectionSize(80)
-        self.filterStartTable(self.ui.startSearchEdit.text())
+
+        self.startExt = StartTableThread(self.startDbpath)
+        self.startExt.startable_ui_insert_row_signal.connect(self.setStartTableInsertRow)
+        self.startExt.startable_ui_signal.connect(self.setStartTableUIDraw)
+        self.startExt.start()
+        self.startExt.quit()
+    
+    def setStartTableInsertRow(self, totRow, percent):
+        if(percent != 999):
+            self.ui.startTable.insertRow(totRow)
+            self.ui.moveFilePrgs.setValue(percent)
+        else:
+            self.ui.moveFilePrgs.setValue(0)
+            self.filterStartTable(self.ui.startSearchEdit.text())
+        
+    def setStartTableUIDraw(self, col_data, row_num, col_num):
+        item = str(col_data)
+        if(col_num == 0): #체크박스
+            item = QTableWidgetItem(item)
+            item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled )
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.ui.startTable.setItem(row_num, col_num, item)
+        elif(col_num == 1): #썸네일
+            item = self.getImageLabel(col_data)
+            self.ui.startTable.setCellWidget(row_num, col_num, item)
+        else:
+            if(item == "None"):
+                item = ""
+            self.ui.startTable.setItem(row_num, col_num, QTableWidgetItem(item))
+
 
     # 출발지 테이블 Blob 셋팅
     def getImageLabel(self, image):
