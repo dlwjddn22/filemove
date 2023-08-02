@@ -2,6 +2,7 @@ import sys, os
 import configparser
 import sqlite3
 import logging.handlers
+import shutil
 from PySide6.QtGui import QPixmap, QDesktopServices
 from PySide6.QtCore import Qt, QUrl, QThread, Signal
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QTableWidgetItem, QFileSystemModel, QAbstractItemView, QMessageBox
@@ -55,7 +56,7 @@ class MainWindow(QMainWindow):
                     if not match:
                         break
 
-    # 시작테이블 데이터 셋팅(sqlite)
+    # 출발지 테이블 데이터 셋팅(sqlite)
     def setStartTableWidget(self):#스레드로 돌면 좋을텐데..
         self.startDbpath = str(self.ui.startCmb.currentText()) + "deepdark.db"
         self.startCon = sqlite3.connect(self.startDbpath)
@@ -78,8 +79,9 @@ class MainWindow(QMainWindow):
                         item = ""
                     self.ui.startTable.setItem(row_num, col_num, QTableWidgetItem(item))
         self.ui.startTable.verticalHeader().setDefaultSectionSize(80)
+        self.filterStartTable(self.ui.startSearchEdit.text())
 
-    # 시작테이블 Blob 셋팅
+    # 출발지 테이블 Blob 셋팅
     def getImageLabel(self, image):
         imageLabel = QLabel()
         imageLabel.setText("")
@@ -88,7 +90,8 @@ class MainWindow(QMainWindow):
         pixmap.loadFromData(image, 'jpg')
         imageLabel.setPixmap(pixmap)
         return imageLabel
-        
+    
+    # 목적지 트리뷰 셋팅
     def setDestTreeView(self):
         rootPath = self.ui.destCmb.currentText()
         self.model_file_system = QFileSystemModel()
@@ -112,27 +115,31 @@ class MainWindow(QMainWindow):
         startPath = self.ui.startCmb.currentText()
         destTreeIdx = self.ui.destTree.currentIndex()
         destPath = self.model_file_system.filePath(destTreeIdx)
-
         dbPath = {
               "startDbPath":self.startDbpath
             , "destDbPath":str(self.ui.destCmb.currentText()) + "deepdark.db"
         }
-        
         filePaths = []
         if(self.model_file_system.fileInfo(destTreeIdx).isDir()):
             for row in range(self.ui.startTable.rowCount()):
                 if self.ui.startTable.item(row, 0).checkState() == Qt.CheckState.Checked:
-                    destOnlyFileName = os.path.split(self.ui.startTable.item(row, 3).text())[1];
-                    filePaths.append({  "startDbFilePath":self.ui.startTable.item(row, 3).text() #start DB PK
-                                      , "destDbFilePath":destPath.replace("/", "\\").replace(self.ui.destCmb.currentText(), "") + "\\" + destOnlyFileName #dest DB PK
-                                      , "startFullFilePath":startPath + self.ui.startTable.item(row, 3).text() #파일이동용 FullPath
-                                      , "destFullFilePath":destPath + "/" + destOnlyFileName}) #파일이동용 FullPath
-
-            self.ext = FileMoveThread(dbPath, filePaths)
-            self.ext.filemove_percent_signal.connect(self.on_count_change)
-            self.ext.filemove_status_signal.connect(self.on_status_change)
-            self.ext.start()
-            self.ext.quit()
+                    destOnlyFileName = os.path.split(self.ui.startTable.item(row, 3).text())[1]
+                    startDbFilePath = self.ui.startTable.item(row, 3).text() #start DB PK
+                    destDbFilePath = destPath.replace("/", "\\").replace(self.ui.destCmb.currentText(), "") + "\\" + destOnlyFileName #dest DB PK
+                    if(startDbFilePath == destDbFilePath and dbPath["startDbPath"] == dbPath["destDbPath"]):
+                        QMessageBox.warning(self,'경고','동일한 폴더입니다.\n다른폴더를 선택해주세요.')
+                        return False
+                    filePaths.append({  "startDbFilePath":startDbFilePath
+                                    , "destDbFilePath":destDbFilePath
+                                    , "startFullFilePath":startPath + self.ui.startTable.item(row, 3).text() #파일이동용 FullPath
+                                    , "destFullFilePath":destPath + "/" + destOnlyFileName}) #파일이동용 FullPath
+            reply = QMessageBox.question(self, 'Message', '(준비완료) 파일이동을 동작하시겠습니까?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.ext = FileMoveThread(dbPath, filePaths)
+                self.ext.filemove_percent_signal.connect(self.on_count_change)
+                self.ext.filemove_status_signal.connect(self.on_status_change)
+                self.ext.start()
+                self.ext.quit()
         else:
             QMessageBox.warning(self,'경고','폴더만 가능합니다.\n폴더를 선택 후 이동해주세요.')
 
@@ -152,6 +159,7 @@ class MainWindow(QMainWindow):
                             newText = destPath.replace("/", "\\").replace(self.ui.destCmb.currentText(), "") + oriText[oriText.rindex('\\'):]
                             self.ui.startTable.item(row, 3).setText(newText)
                         self.ui.startTable.item(row, 0).setCheckState(Qt.CheckState.Unchecked)
+                        self.filterStartTable(self.ui.startSearchEdit.text())
             if(value == "다른폴더완료"):
                 del_row.reverse()
                 for row in del_row:
@@ -190,8 +198,12 @@ class FileMoveThread(QThread):
 
             for filepath in self.filePaths:
                 self.my_callback_status(filepath['startDbFilePath']) #현재이동중인 파일명 UI 표시
-                self.copyfileobj(filepath['startFullFilePath'], filepath['destFullFilePath'], self.my_callback) #파일복사
-                os.remove(filepath['startFullFilePath']) #기존파일삭제
+                if(isSameDbPath == False):
+                    self.copyfileobj(filepath['startFullFilePath'], filepath['destFullFilePath'], self.my_callback) #파일복사
+                    os.remove(filepath['startFullFilePath']) #기존파일삭제
+                else:
+                    self.movefileobj(filepath['startFullFilePath'], filepath['destFullFilePath'], self.my_callback) #파일이동
+
                 self.setDbModify(filepath['startDbFilePath'], filepath['destDbFilePath'], filepath['destFullFilePath'], isSameDbPath) #DB변경
             if(isSameDbPath == False):
                 self.filemove_status_signal.emit("다른폴더완료")
@@ -221,6 +233,11 @@ class FileMoveThread(QThread):
                 fw.write(buff)
                 self.temp_file_size += len(buff)
                 callback(self.temp_file_size)
+    
+    def movefileobj(self, fsrc, fdst, callback):
+        shutil.move(fsrc, fdst)
+        self.temp_file_size += os.stat(fdst).st_size
+        callback(self.temp_file_size)
     
     def setDbModify(self, sFilePath, dFilePath, dFileFullPath, isSameDbPath):
         try:
