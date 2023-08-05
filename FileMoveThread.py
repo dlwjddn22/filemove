@@ -49,7 +49,7 @@ class FileMoveThread(QThread):
                 self.filemove_status_signal.emit("동일폴더완료")
         except Exception as e:
             self.filemove_status_signal.emit("실패")
-            self.logger.error(str(e))
+            self.logger.error(str(e) + "\n출발지파일:" + filepath['startFullFilePath'] + "\n목적지파일:" + filepath['destFullFilePath'])
             #print(e)
         finally:
             self.startDbCon.close()
@@ -83,17 +83,17 @@ class FileMoveThread(QThread):
                 sCon = self.startDbCon.cursor()
                 dCon = self.destDbCon.cursor()
                 # DB 복사
-                result = sCon.execute("SELECT '"+dFilePath+"' as filepath, dvdid, stars, dbDate, fileDate, playDate, hashTag, Thumb, count, trash, dvdIsNotExists FROM Files WHERE filepath='"+sFilePath+"';")
-                dCon.execute("INSERT INTO Files (filepath, dvdid, stars, dbDate, fileDate, playDate, hashTag, Thumb, count, trash, dvdIsNotExists) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", result.fetchone())
-                result = sCon.execute("SELECT '"+dFilePath+"' as filepath, start, length, thumb FROM Favorites WHERE filepath='"+sFilePath+"';")
-                dCon.executemany("INSERT INTO Favorites (filepath, start, length, thumb) VALUES(?, ?, ?, ?)", result.fetchall())
+                result = sCon.execute("""SELECT "%s" as filepath, dvdid, stars, dbDate, fileDate, playDate, hashTag, Thumb, count, trash, dvdIsNotExists FROM Files WHERE filepath = ?;""" % dFilePath, (sFilePath,))
+                dCon.execute("""INSERT INTO Files (filepath, dvdid, stars, dbDate, fileDate, playDate, hashTag, Thumb, count, trash, dvdIsNotExists) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", result.fetchone())
+                result = sCon.execute("""SELECT "%s" as filepath, start, length, thumb FROM Favorites WHERE filepath = ?;""" % dFilePath, (sFilePath,))
+                dCon.executemany("""INSERT INTO Favorites (filepath, start, length, thumb) VALUES(?, ?, ?, ?)""", result.fetchall())
                 # 기존 DB삭제
-                sCon.execute("DELETE FROM Files WHERE filepath='"+sFilePath+"';")
-                sCon.execute("DELETE FROM Favorites WHERE filepath='"+sFilePath+"';")
+                sCon.execute("""DELETE FROM Files WHERE filepath = ?;""", (sFilePath,))
+                sCon.execute("""DELETE FROM Favorites WHERE filepath = ?;""", (sFilePath,))
             else:#dbpath가 같으면 update
                 sCon = self.startDbCon.cursor()
-                sCon.execute("UPDATE Files SET filepath = '"+dFilePath+"' WHERE filepath='"+sFilePath+"'")
-                sCon.execute("UPDATE Favorites SET filepath = '"+dFilePath+"' WHERE filepath='"+sFilePath+"'")
+                sCon.execute("""UPDATE Files SET filepath = ? WHERE filepath = ?""", (dFilePath, sFilePath))
+                sCon.execute("""UPDATE Favorites SET filepath = ? WHERE filepath = ?""", (dFilePath, sFilePath))
 
             self.startDbCon.commit()
             if(isSameDbPath == False):
@@ -104,5 +104,5 @@ class FileMoveThread(QThread):
             if(isSameDbPath == False):
                 self.destDbCon.rollback()
             #os.remove(dFileFullPath) 삭제는 위험
-            print(self,'에러','SQLite error : %s' % (' '.join(er.args)))
-            self.logger.error('SQLite error : %s' % (' '.join(er.args)))
+            print(self,'에러','SQLite error : %s' % (' '.join(er.args)) + "\n출발지파일:" + sFilePath + "\n목적지파일:" + dFilePath)
+            self.logger.error('SQLite error : %s' % (' '.join(er.args)) + "\n출발지파일:" + sFilePath + "\n목적지파일:" + dFilePath)

@@ -2,3 +2,6 @@ config.ini
 todo.txt
 __pycache__
 /log/*
+/build/
+/dist/
+FileMove.spec

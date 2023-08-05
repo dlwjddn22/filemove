@@ -20,7 +20,7 @@ class StartTableThread(QThread):
         result = con.execute("SELECT count(uid) FROM Files;")
         totRow = result.fetchone()[0]
 
-        result = con.execute("SELECT uid, thumb, hashTag, filepath FROM Files;")
+        result = con.execute("SELECT '', uid, thumb, stars, hashTag, filepath FROM Files;")
         for row_num, row_data in enumerate(result):
             percent = int((row_num+1)/totRow*100)
             self.startable_ui_insert_row_signal.emit(row_num, percent)

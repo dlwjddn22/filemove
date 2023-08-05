@@ -23,11 +23,16 @@
       <item row="2" column="0">
        <widget class="QTableWidget" name="startTable">
         <property name="columnCount">
-         <number>4</number>
+         <number>6</number>
         </property>
         <column>
          <property name="text">
           <string/>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>번호</string>
          </property>
         </column>
         <column>
@@ -37,12 +42,17 @@
         </column>
         <column>
          <property name="text">
-          <string>경로</string>
+          <string>평점</string>
          </property>
         </column>
         <column>
          <property name="text">
           <string>태그</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>경로</string>
          </property>
         </column>
        </widget>
