@@ -144,6 +144,6 @@ class Ui_MainWindow(object):
         ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"\uacbd\ub85c", None));
         self.moveStatusLabel.setText(QCoreApplication.translate("MainWindow", u"\ud30c\uc77c\uc774\ub3d9\uc744 \ud074\ub9ad\ud574\uc8fc\uc138\uc694.", None))
         self.moveFileBtn.setText(QCoreApplication.translate("MainWindow", u"\ud30c\uc77c\uc774\ub3d9", None))
-        self.moveFileLogBtn.setText(QCoreApplication.translate("MainWindow", u"\ub85c\uadf8\ubcf4\uae30", None))
+        self.moveFileLogBtn.setText(QCoreApplication.translate("MainWindow", u"\ub85c\uadf8\ud3f4\ub354", None))
     # retranslateUi
 

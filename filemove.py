@@ -60,8 +60,9 @@ class MainWindow(QMainWindow):
 
     def moveFileLogShell(self):
         current_folder = os.getcwd()
-        logPath = current_folder + "\log\logfile.log"
-        subprocess.run(['start', '', logPath], shell=True)
+        logPath = current_folder + "\log"
+        #subprocess.run(['start', '', logPath], shell=True)
+        os.startfile(logPath)
 
     def startTableMenu1_act(self):
         for row in range(self.ui.startTable.rowCount()):

@@ -116,7 +116,7 @@
           <item>
            <widget class="QPushButton" name="moveFileLogBtn">
             <property name="text">
-             <string>로그보기</string>
+             <string>로그폴더</string>
             </property>
            </widget>
           </item>
