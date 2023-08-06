@@ -81,6 +81,11 @@ class Ui_MainWindow(object):
 
         self.moveStatusLabel = QLabel(self.centralwidget)
         self.moveStatusLabel.setObjectName(u"moveStatusLabel")
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.moveStatusLabel.sizePolicy().hasHeightForWidth())
+        self.moveStatusLabel.setSizePolicy(sizePolicy)
 
         self.verticalLayout.addWidget(self.moveStatusLabel)
 
@@ -96,6 +101,11 @@ class Ui_MainWindow(object):
         self.moveFileBtn.setObjectName(u"moveFileBtn")
 
         self.horizontalLayout.addWidget(self.moveFileBtn)
+
+        self.moveFileLogBtn = QPushButton(self.centralwidget)
+        self.moveFileLogBtn.setObjectName(u"moveFileLogBtn")
+
+        self.horizontalLayout.addWidget(self.moveFileLogBtn)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -134,5 +144,6 @@ class Ui_MainWindow(object):
         ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"\uacbd\ub85c", None));
         self.moveStatusLabel.setText(QCoreApplication.translate("MainWindow", u"\ud30c\uc77c\uc774\ub3d9\uc744 \ud074\ub9ad\ud574\uc8fc\uc138\uc694.", None))
         self.moveFileBtn.setText(QCoreApplication.translate("MainWindow", u"\ud30c\uc77c\uc774\ub3d9", None))
+        self.moveFileLogBtn.setText(QCoreApplication.translate("MainWindow", u"\ub85c\uadf8\ubcf4\uae30", None))
     # retranslateUi
 

@@ -26,6 +26,7 @@ class FileMoveThread(QThread):
     def run(self):
         try:
             isSameDbPath = self.dbPath['startDbPath'] == self.dbPath['destDbPath']
+            isSameDrive = self.dbPath['startDbPath'][:self.dbPath['startDbPath'].find("\\")] == self.dbPath['destDbPath'][:self.dbPath['destDbPath'].find("\\")]
 
             self.startDbCon = sqlite3.connect(self.dbPath['startDbPath'])
             if(isSameDbPath == False):
@@ -36,7 +37,7 @@ class FileMoveThread(QThread):
 
             for filepath in self.filePaths:
                 self.my_callback_status(filepath['startDbFilePath']) #현재이동중인 파일명 UI 표시
-                if(isSameDbPath == False):
+                if(isSameDrive == False):
                     self.copyfileobj(filepath['startFullFilePath'], filepath['destFullFilePath'], self.my_callback) #파일복사
                     os.remove(filepath['startFullFilePath']) #기존파일삭제
                 else:

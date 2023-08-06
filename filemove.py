@@ -1,6 +1,6 @@
 import sys, os
 import configparser
-import sqlite3
+import subprocess
 
 from PySide6.QtGui import QPixmap, QDesktopServices, QAction
 from PySide6.QtCore import Qt, QUrl
@@ -24,6 +24,7 @@ class MainWindow(QMainWindow):
         self.ui.destCmb.currentIndexChanged.connect(self.setDestTreeView)
         self.ui.moveFileBtn.clicked.connect(self.moveFileData)
         self.ui.startSearchEdit.textChanged.connect(self.filterStartTable)
+        self.ui.moveFileLogBtn.clicked.connect(self.moveFileLogShell)
 
         # 출발지테이블 width 셋팅
         self.ui.startTable.setColumnWidth(0, 15) #체크박스
@@ -38,12 +39,15 @@ class MainWindow(QMainWindow):
         if not self.ui.startTable.isSortingEnabled():
             self.ui.startTable.setSortingEnabled(True)
         self.ui.startTable.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
-        startTableMenu1 = QAction("전체체크" , self.ui.destTree)
-        startTableMenu2 = QAction("전체체크해제" , self.ui.destTree)
+        startTableMenu1 = QAction("전체체크" , self.ui.startTable)
+        startTableMenu2 = QAction("전체체크해제" , self.ui.startTable)
+        startTableMenu3 = QAction("새로고침" , self.ui.startTable)
         startTableMenu1.triggered.connect(self.startTableMenu1_act)
         startTableMenu2.triggered.connect(self.startTableMenu2_act)
+        startTableMenu3.triggered.connect(self.setStartTableWidget)
         self.ui.startTable.addAction(startTableMenu1)
         self.ui.startTable.addAction(startTableMenu2)
+        self.ui.startTable.addAction(startTableMenu3)
 
         # 파일이동 프로그레스바
         self.ui.moveFilePrgs.setMaximum(100)
@@ -53,6 +57,15 @@ class MainWindow(QMainWindow):
         destTreeMenu1 = QAction("현재폴더열기" , self.ui.destTree)
         destTreeMenu1.triggered.connect(self.destTreeMenu1_act)
         self.ui.destTree.addAction(destTreeMenu1)
+
+    def moveFileLogShell(self):
+        current_script_path = os.path.abspath(__file__)
+        current_folder = os.path.dirname(current_script_path)
+        logPath = current_folder + "\log\logfile.log"
+        subprocess.run(['start', '', logPath], shell=True)
+        # command = "get-content '"+logPath+"' -wait -tail 10"  # 실행할 PowerShell 명령어
+        # subprocess.run(["powershell", "-Command", command], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        #result = subprocess.run(["powershell", "-Command", command], capture_output=True, text=True)
 
     def startTableMenu1_act(self):
         for row in range(self.ui.startTable.rowCount()):
@@ -72,11 +85,10 @@ class MainWindow(QMainWindow):
     def destTreeMenu1_act(self):#현재폴더열기
         destTreeIdx = self.ui.destTree.currentIndex()
         destPath = self.model_file_system.filePath(destTreeIdx)
-        print(destPath)
-        if(self.model_file_system.fileInfo(destTreeIdx).isFile()):
+        if(self.model_file_system.fileInfo(destTreeIdx).isDir()):
             os.startfile(destPath) #폴더열기
         else:
-            QDesktopServices.openUrl(QUrl("file:///"+destPath)) #파일실행
+            subprocess.run(['start', '', destPath], shell=True)
 
     def startTableCellclicked(self, row, col):
         if(col == 0):
@@ -90,11 +102,12 @@ class MainWindow(QMainWindow):
     def startTableCelldoubleclicked(self, row, col):
         fileName = self.ui.startTable.item(row, 5).text()
         if(col == 2):
-            QDesktopServices.openUrl(QUrl("file:///"+str(self.ui.startCmb.currentText())+fileName)) #파일실행
+            video_file_path = str(self.ui.startCmb.currentText())+fileName
+            subprocess.run(['start', '', video_file_path], shell=True)
         elif(col == 5):
-            fileNameIdx = fileName.find('\\')
+            fileNameIdx = fileName.rfind('\\')
             if(fileNameIdx != -1):
-               fileName = fileName[:fileName.find('\\')]
+               fileName = fileName[:fileNameIdx]
             os.startfile(str(self.ui.startCmb.currentText())+ fileName) #폴더열기
         
 
@@ -121,7 +134,7 @@ class MainWindow(QMainWindow):
                         break
 
     # 출발지 테이블 데이터 셋팅(sqlite)
-    def setStartTableWidget(self):#스레드로 돌면 좋을텐데..
+    def setStartTableWidget(self):
         self.startDbpath = str(self.ui.startCmb.currentText()) + "deepdark.db"
         self.ui.startTable.setRowCount(0) #테이블 초기화
         self.ui.startTable.verticalHeader().setDefaultSectionSize(80)
@@ -165,9 +178,6 @@ class MainWindow(QMainWindow):
             self.ui.startTable.setItem(row_num, col_num, QTableWidgetItem(dbStr))
             if(col_num == 3):
                 self.ui.startTable.item(row_num, col_num).setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter)
-        
-        
-
 
     # 출발지 테이블 Blob 셋팅
     def getImageLabel(self, image):
@@ -196,7 +206,8 @@ class MainWindow(QMainWindow):
 
     def item_double_clicked(self, index):
         if(self.model_file_system.fileInfo(index).isFile()):
-            QDesktopServices.openUrl(QUrl("file:///"+str(self.model_file_system.filePath(index)))); #파일실행
+            destPath = str(self.model_file_system.filePath(index))
+            subprocess.run(['start', '', destPath], shell=True)
 
     def moveFileData(self):
         startPath = self.ui.startCmb.currentText()
@@ -243,7 +254,7 @@ class MainWindow(QMainWindow):
                             destTreeIdx = self.ui.destTree.currentIndex()
                             destPath = self.model_file_system.filePath(destTreeIdx)
                             oriText = self.ui.startTable.item(row, 5).text()
-                            oriTextIdx = oriText.find('\\')
+                            oriTextIdx = oriText.rfind('\\')
                             if(oriTextIdx != -1):
                                 oriText = oriText[oriTextIdx+1:]
                             newText = destPath.replace("/", "\\").replace(self.ui.destCmb.currentText(), "") + "\\" + oriText
