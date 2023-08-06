@@ -59,13 +59,9 @@ class MainWindow(QMainWindow):
         self.ui.destTree.addAction(destTreeMenu1)
 
     def moveFileLogShell(self):
-        current_script_path = os.path.abspath(__file__)
-        current_folder = os.path.dirname(current_script_path)
+        current_folder = os.getcwd()
         logPath = current_folder + "\log\logfile.log"
         subprocess.run(['start', '', logPath], shell=True)
-        # command = "get-content '"+logPath+"' -wait -tail 10"  # 실행할 PowerShell 명령어
-        # subprocess.run(["powershell", "-Command", command], creationflags=subprocess.CREATE_NEW_CONSOLE)
-        #result = subprocess.run(["powershell", "-Command", command], capture_output=True, text=True)
 
     def startTableMenu1_act(self):
         for row in range(self.ui.startTable.rowCount()):
@@ -227,7 +223,8 @@ class MainWindow(QMainWindow):
                     if(startDbFilePath == destDbFilePath and dbPath["startDbPath"] == dbPath["destDbPath"]):
                         QMessageBox.warning(self,'경고','동일한 폴더입니다.\n다른폴더를 선택해주세요.')
                         return False
-                    filePaths.append({  "startDbFilePath":startDbFilePath
+                    filePaths.append({ "row" : row
+                                    , "startDbFilePath":startDbFilePath
                                     , "destDbFilePath":destDbFilePath
                                     , "startFullFilePath":startPath + self.ui.startTable.item(row, 5).text() #파일이동용 FullPath
                                     , "destFullFilePath":destPath + "/" + destOnlyFileName}) #파일이동용 FullPath
@@ -243,31 +240,26 @@ class MainWindow(QMainWindow):
 
     def on_count_change(self, value):
         self.ui.moveFilePrgs.setValue(value)
-    def on_status_change(self, value):
-        if(value == "다른폴더완료" or value == "동일폴더완료"): #파일이동 완료 시 선택된 row 삭제
+    def on_status_change(self, value, paramRow, paramPath):
+        if(value == "다른폴더완료"): #파일이동 완료 시 선택된 row 삭제
             del_row = []
             for row in range(self.ui.startTable.rowCount()):
-                    if self.ui.startTable.item(row, 0).checkState() == Qt.CheckState.Checked:
-                        if(value == "다른폴더완료"):
-                            del_row.append(row)
-                        else:
-                            destTreeIdx = self.ui.destTree.currentIndex()
-                            destPath = self.model_file_system.filePath(destTreeIdx)
-                            oriText = self.ui.startTable.item(row, 5).text()
-                            oriTextIdx = oriText.rfind('\\')
-                            if(oriTextIdx != -1):
-                                oriText = oriText[oriTextIdx+1:]
-                            newText = destPath.replace("/", "\\").replace(self.ui.destCmb.currentText(), "") + "\\" + oriText
-                            self.ui.startTable.item(row, 5).setText(newText)
-                        self.ui.startTable.item(row, 0).setCheckState(Qt.CheckState.Unchecked)
-                        self.ui.startTable.item(row, 0).setBackground(Qt.GlobalColor.white)
-                        self.filterStartTable(self.ui.startSearchEdit.text())
-            if(value == "다른폴더완료"):
-                del_row.reverse()
-                for row in del_row:
-                    self.ui.startTable.removeRow(row)
-        self.ui.moveStatusLabel.setText(value)
+                if self.ui.startTable.item(row, 0).checkState() == Qt.CheckState.Checked:
+                    del_row.append(row)
+                    self.ui.startTable.item(row, 0).setCheckState(Qt.CheckState.Unchecked)
+                    self.ui.startTable.item(row, 0).setBackground(Qt.GlobalColor.white)
+            del_row.reverse()
+            for row in del_row:
+                self.ui.startTable.removeRow(row)
+        if(value == "다른폴더완료" or value == "동일폴더완료"):
+            self.filterStartTable(self.ui.startSearchEdit.text())
 
+        if(value == "동일폴더개별"):
+            self.ui.startTable.item(paramRow, 5).setText(paramPath)
+            self.ui.startTable.item(paramRow, 0).setCheckState(Qt.CheckState.Unchecked)
+            self.ui.startTable.item(paramRow, 0).setBackground(Qt.GlobalColor.white)
+        else:
+            self.ui.moveStatusLabel.setText(value)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -6,7 +6,7 @@ from PySide6.QtCore import QThread, Signal
 
 class FileMoveThread(QThread):
     filemove_percent_signal= Signal(int)
-    filemove_status_signal= Signal(str)
+    filemove_status_signal= Signal(str, int, str)
 
     def __init__(self, dbPath, filePaths):
         super().__init__()
@@ -35,23 +35,47 @@ class FileMoveThread(QThread):
             for filepath in self.filePaths:
                 self.file_tot_size += os.stat(filepath['startFullFilePath']).st_size
 
-            for filepath in self.filePaths:
-                self.my_callback_status(filepath['startDbFilePath']) #현재이동중인 파일명 UI 표시
+            for filepath in self.filePaths:                
+                #--------------------목적지 폴더에 중복파일이 있으면 (숫자)로 중복회피------------------------
+                dest_folder = filepath['destFullFilePath'][:filepath['destFullFilePath'].rfind("/")]
+                src_file = filepath['destDbFilePath']
+                base_folder = os.path.dirname(src_file)
+                base_name = os.path.basename(src_file)
+                file_name, file_extension = os.path.splitext(base_name)
+                dest_full_file = os.path.join(dest_folder, base_name)
+                dest_db_file = os.path.join(base_folder, base_name)
+                
+                counter = 1
+                while os.path.exists(dest_full_file):
+                    new_file_name = f"{file_name} ({counter}){file_extension}"
+                    dest_full_file = os.path.join(dest_folder, new_file_name)
+                    dest_db_file = os.path.join(base_folder, new_file_name)
+                    counter += 1
+                    
+                filepath['destDbFilePath'] = dest_db_file
+                filepath['destFullFilePath'] = dest_full_file
+                #--------------------목적지 폴더에 중복파일이 있으면 (숫자)로 중복회피 End------------------------
+
+                self.my_callback_status(filepath['startDbFilePath'], 0, "") #현재이동중인 파일명 UI 표시
                 if(isSameDrive == False):
                     self.copyfileobj(filepath['startFullFilePath'], filepath['destFullFilePath'], self.my_callback) #파일복사
                     os.remove(filepath['startFullFilePath']) #기존파일삭제
                 else:
                     self.movefileobj(filepath['startFullFilePath'], filepath['destFullFilePath'], self.my_callback) #파일이동
 
-                self.setDbModify(filepath['startDbFilePath'], filepath['destDbFilePath'], filepath['destFullFilePath'], isSameDbPath) #DB변경
+                self.setDbModify(filepath['startDbFilePath'], filepath['destDbFilePath'], filepath['startFullFilePath'], filepath['destFullFilePath'], isSameDbPath) #DB변경
+                
+                if(isSameDbPath == True):
+                    self.my_callback_status("동일폴더개별", int(filepath["row"]), filepath['destDbFilePath'])
+                    
             if(isSameDbPath == False):
-                self.filemove_status_signal.emit("다른폴더완료")
+                self.my_callback_status("다른폴더완료", 0, "")
             else:
-                self.filemove_status_signal.emit("동일폴더완료")
+                self.my_callback_status("동일폴더완료", 0, "")
         except Exception as e:
-            self.filemove_status_signal.emit("실패")
+            self.my_callback_status("실패", 0, "")
+            print(str(e) + "\n출발지파일:" + filepath['startFullFilePath'] + "\n목적지파일:" + filepath['destFullFilePath'])
             self.logger.error(str(e) + "\n출발지파일:" + filepath['startFullFilePath'] + "\n목적지파일:" + filepath['destFullFilePath'])
-            #print(e)
         finally:
             self.startDbCon.close()
             if(isSameDbPath == False):
@@ -60,8 +84,8 @@ class FileMoveThread(QThread):
     def my_callback(self, temp_file_size):
         percent = int(temp_file_size/self.file_tot_size*100)
         self.filemove_percent_signal.emit(percent)
-    def my_callback_status(self, statusValue):
-        self.filemove_status_signal.emit(statusValue)
+    def my_callback_status(self, statusValue, paramRow, paramPath):
+        self.filemove_status_signal.emit(statusValue, paramRow, paramPath)
 
     def copyfileobj(self, fsrc, fdst, callback, length=16*1024):
         with open(fsrc, "rb") as fr, open(fdst, "wb") as fw:
@@ -78,7 +102,7 @@ class FileMoveThread(QThread):
         self.temp_file_size += os.stat(fdst).st_size
         callback(self.temp_file_size)
     
-    def setDbModify(self, sFilePath, dFilePath, dFileFullPath, isSameDbPath):
+    def setDbModify(self, sFilePath, dFilePath, sFileFullPath, dFileFullPath, isSameDbPath):
         try:
             if(isSameDbPath == False):#dbpath가 다르면 insert 
                 sCon = self.startDbCon.cursor()
@@ -105,5 +129,4 @@ class FileMoveThread(QThread):
             if(isSameDbPath == False):
                 self.destDbCon.rollback()
             #os.remove(dFileFullPath) 삭제는 위험
-            print(self,'에러','SQLite error : %s' % (' '.join(er.args)) + "\n출발지파일:" + sFilePath + "\n목적지파일:" + dFilePath)
-            self.logger.error('SQLite error : %s' % (' '.join(er.args)) + "\n출발지파일:" + sFilePath + "\n목적지파일:" + dFilePath)
+            self.logger.error('SQLite error : %s' % (' '.join(er.args)) + "\n출발지파일:" + sFileFullPath + "\n목적지파일:" + dFileFullPath)

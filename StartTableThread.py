@@ -12,7 +12,6 @@ class StartTableThread(QThread):
         self.dbPath = dbPath
 
     def run(self):
-        print(self.dbPath)
         self.startCon = sqlite3.connect(self.dbPath)
         con = self.startCon.cursor()
         
