@@ -3,8 +3,8 @@ import configparser
 import subprocess
 
 from PySide6.QtGui import QPixmap, QDesktopServices, QAction
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QTableWidgetItem, QFileSystemModel, QAbstractItemView, QMessageBox
+from PySide6.QtCore import Qt, QUrl, QDir, QModelIndex
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QTableWidgetItem, QFileSystemModel, QAbstractItemView, QMessageBox, QTreeView, QInputDialog
 from ui_filemove_ui import Ui_MainWindow
 from FileMoveThread import FileMoveThread
 from StartTableThread import StartTableThread
@@ -53,11 +53,33 @@ class MainWindow(QMainWindow):
         self.ui.moveFilePrgs.setMaximum(100)
 
         # 목적지 Treeview 셋팅
+        self.model = QFileSystemModel()
+        self.ui.destTree.setModel(self.model)
         self.ui.destTree.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
         destTreeMenu1 = QAction("현재폴더열기" , self.ui.destTree)
+        destTreeMenu2 = QAction("ROOT폴더생성" , self.ui.destTree)
+        destTreeMenu3 = QAction("하위폴더생성" , self.ui.destTree)
+        destTreeMenu4 = QAction("폴더삭제" , self.ui.destTree)
+        destTreeMenu5 = QAction("폴더이름변경" , self.ui.destTree)
+        destSeparator1 = QAction("----------------" , self.ui.destTree)
+        destSeparator2 = QAction("----------------" , self.ui.destTree)
         destTreeMenu1.triggered.connect(self.destTreeMenu1_act)
+        destTreeMenu2.triggered.connect(self.destTreeMenu2_act)
+        destTreeMenu3.triggered.connect(self.destTreeMenu3_act)
+        destTreeMenu4.triggered.connect(self.destTreeMenu4_act)
+        destTreeMenu5.triggered.connect(self.destTreeMenu5_act)
+        destTreeMenu2.setShortcut("Ctrl+R")   # ROOT폴더생성: Ctrl+R
+        destTreeMenu3.setShortcut("Ctrl+N")   # 하위폴더생성: Ctrl+N
+        destTreeMenu4.setShortcut("Del")      # 폴더삭제: Del
+        destTreeMenu5.setShortcut("F2")       # 폴더이름변경: F2
         self.ui.destTree.addAction(destTreeMenu1)
-
+        self.ui.destTree.addAction(destSeparator1)
+        self.ui.destTree.addAction(destTreeMenu2)
+        self.ui.destTree.addAction(destTreeMenu3)
+        self.ui.destTree.addAction(destSeparator2)
+        self.ui.destTree.addAction(destTreeMenu4)
+        self.ui.destTree.addAction(destTreeMenu5)
+    
     def moveFileLogShell(self):
         current_folder = os.getcwd()
         logPath = current_folder + "\log"
@@ -86,6 +108,73 @@ class MainWindow(QMainWindow):
             os.startfile(destPath) #폴더열기
         else:
             subprocess.run(['start', '', destPath], shell=True)
+    def destTreeMenu2_act(self):
+        #ROOT폴더 생성
+        parent_path = self.ui.destCmb.currentText()
+        folder_name, ok = QInputDialog.getText(self, "Rename Folder", "Enter new folder name:", text='')
+        if folder_name:
+            new_folder_path = os.path.join(parent_path, folder_name)
+            try:
+                os.mkdir(new_folder_path)  # Create folder
+            except Exception as e:
+               QMessageBox.warning(self,'경고',f"Error creating folder: {e}")
+    
+    def destTreeMenu3_act(self):
+        #하위폴더 생성
+        destTreeIdxs = self.ui.destTree.selectedIndexes()
+        if not destTreeIdxs:
+            QMessageBox.warning(self,'경고','폴더를 선택해주세요.')
+            return
+        destTreeIdx = destTreeIdxs[0]
+        parent_path = self.model_file_system.filePath(destTreeIdx)
+        folder_name, ok = QInputDialog.getText(self, "Rename Folder", "Enter new folder name:", text='')
+        if folder_name:
+            new_folder_path = os.path.join(parent_path, folder_name)
+            try:
+                os.mkdir(new_folder_path)  # Create folder
+            except Exception as e:
+                QMessageBox.warning(self,'경고',f"Error creating folder: {e}")
+    def destTreeMenu4_act(self):
+        #폴더삭제
+        destTreeIdxs = self.ui.destTree.selectedIndexes()
+        if not destTreeIdxs:
+            QMessageBox.warning(self,'경고','폴더를 선택해주세요.')
+            return
+        
+        destTreeIdx = destTreeIdxs[0]
+        folder_path = self.model_file_system.filePath(destTreeIdx)
+
+        if not os.path.isdir(folder_path):
+            QMessageBox.warning(self,'경고','폴더가 아닙니다.')
+            return
+        try:
+            os.rmdir(folder_path)  # Remove folder (only empty folders)
+        except Exception as e:
+                QMessageBox.warning(self,'경고','폴더에 파일들이 있습니다.')
+    def destTreeMenu5_act(self):
+        #폴더이름변경
+        # """ Override to handle folder name change after F2 key or double click """
+        destTreeIdxs = self.ui.destTree.selectedIndexes()
+        if not destTreeIdxs:
+            QMessageBox.warning(self,'경고','폴더를 선택해주세요.')
+            return
+        destTreeIdx = destTreeIdxs[0]
+        old_path = self.model.filePath(destTreeIdx)
+        if not os.path.isdir(old_path):
+            QMessageBox.warning(self,'경고','폴더가 아닙니다.')
+            return
+        old_name = self.model.fileName(destTreeIdx)
+        new_name, ok = QInputDialog.getText(self, "Rename Folder", "Enter new folder name:", text=old_name)
+        if ok and new_name and new_name != old_name:
+            #"""Rename folder logic"""
+           
+            parent_dir = os.path.dirname(old_path)
+            new_folder_path = os.path.join(parent_dir, new_name)
+            try:
+                # Rename the folder using os.rename or QDir.rename
+                os.rename(old_path, new_folder_path)
+            except Exception as e:
+                QMessageBox.warning(self,'경고',f"Error renaming folder: {e}") 
 
     def startTableCellclicked(self, row, col):
         if(col == 0):

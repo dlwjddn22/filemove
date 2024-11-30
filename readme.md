@@ -1,3 +1,5 @@
+# py 실행
+1. python filemove.py
 # exe 컴파일 
 1. 하나의 exe파일 생성이고 콘솔창 출력안되게 컴파일
    - `pyinstaller -w -F FileMove.py `
